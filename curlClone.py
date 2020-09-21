@@ -29,6 +29,7 @@ response = s.recv(4096)
 print(response) # parse this
 
 
+
 # Return from server
 # We will always use HTTP GET, which will (i think) return redirects. This is how we
 # can deal with them. We must check for HTTP response above 400, content-type (must be text/html
