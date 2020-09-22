@@ -31,38 +31,34 @@ def curl(url, attempts):
             x, y = line.split(':', 1)
             header[x] = y.strip()
 
-
+    # Redirection
     if responseType == 302 or responseType == 301:
         if attempts >= 10:
             return('exit 2')
         sys.stderr.write('Redirected to %s \n' %header['Location'])
+        client.close()
         return curl(header['Location'], attempts + 1)
 
-    elif responseType >= 400:
-        return('exit 3')
-
-    # this should the the last step after all (up to 10) redirects
+    # We know it is not a redirect, so lets go ahead and grab everything from the page
     while len(fullResponse) < int(header['Content-Length']):
         response = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
         fullResponse += response.decode()
 
-    return fullResponse
-
-    '''
-    responsetype = int(fullResponse.split(' ', 2)[1])
-    if responsetype == 200: # also need to check if contenttype is text/html
+    # Page error
+    if responseType >= 400:
         print(fullResponse)
-        return ('exit 0')
-    elif responsetype >= 400:
-        print(fullResponse)
-        return ('exit 2')
+        return('exit 3')
 
-    return fullResponse # parse this
-    '''
-    # We will always use HTTP GET, which will (i think) return if it is a redirect. This is how we
-    # can deal with them. We must check for HTTP response above 400, content-type (must be text/html
-    # if not a redirect).
+    # Got the page
+    elif responseType == 200:
+        # make sure Content header is correct
+        if header['Content-Type'].split(';')[0] == 'text/html':
+            sys.stdout.write(fullResponse)
+            return('exit 0')
+        else:
+            return('exit 4')
 
+    return ('exit 5')
 
 def parseURL(url):
     longpath = url.split('//')[1]
@@ -73,7 +69,7 @@ def parseURL(url):
         path = longpath[firstslash:]
     else:
         hostport = longpath.split(':')
-        path = None
+        path = '/'
 
     if len(hostport) == 2:
         host, port = hostport
