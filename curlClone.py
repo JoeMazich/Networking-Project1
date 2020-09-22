@@ -13,21 +13,7 @@ def curl():
     if url[0:7] != "http://":
         return("exit 1")
 
-    longpath = url.split('//')[1]
-    firstslash = longpath.find('/')
-
-    if firstslash != -1:
-        hostport = longpath[0:firstslash].split(':')
-        path = longpath[firstslash:len(longpath)]
-    else:
-        hostport = longpath.split(':')
-        path = None
-
-    if len(hostport) == 2:
-        host, port = hostport
-    else:
-        host = hostport[0]
-        port = 80
+    host, port, path = parseURL(url)
     # End of parse input URL
 
     # Find IP
@@ -36,7 +22,7 @@ def curl():
     # Connect to host using the IP found via DNS and port vis the URL parse
     client.connect((host_IP, int(port)))
     # Create the request
-    request = "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n" %(path, host)
+    request = "GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n" %(path, host)
     # Encode and send the request
     client.send(request.encode())
 
@@ -59,7 +45,25 @@ def curl():
     # can deal with them. We must check for HTTP response above 400, content-type (must be text/html
     # if not a redirect). Content-length check for another request - gotta figure this out later (comes into play for pages like libc.html)
 
-    # Out
+
+def parseURL(url):
+    longpath = url.split('//')[1]
+    firstslash = longpath.find('/')
+
+    if firstslash != -1:
+        hostport = longpath[0:firstslash].split(':')
+        path = longpath[firstslash+1:]
+    else:
+        hostport = longpath.split(':')
+        path = None
+
+    if len(hostport) == 2:
+        host, port = hostport
+    else:
+        host = hostport[0]
+        port = 80
+    return host, port, path
+
 
 if __name__ == "__main__":
     print(curl())
