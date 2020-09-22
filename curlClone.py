@@ -1,17 +1,17 @@
 import socket
 import sys
 
-def main():
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    except socket.error:
-        print("Socket creation error: %s" %(socket.error))
+# Super messy right now - just trying to get it done quick to move onto the next part
+
+def curl():
+
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     url = sys.argv[1]
 
     # Parse input URL
     if url[0:7] != "http://":
-        return("Error, url must begin with http://")
+        return("exit 1")
 
     longpath = url.split('//')[1]
     firstslash = longpath.find('/')
@@ -30,30 +30,32 @@ def main():
         port = 80
     # End of parse input URL
 
-    # Connect to DNS
-    try:
-        host_IP = socket.gethostbyname(host)
-    except socket.herror:
-        print("Error finding host: %s" %(socket.herror))
+    # Find IP
+    host_IP = socket.gethostbyname(host)
 
-    print(host_IP) # print IP of host for debugging
+    # Connect to host using the IP found via DNS and port vis the URL parse
+    client.connect((host_IP, int(port)))
+    # Create the request
+    request = "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n" %(path, host)
+    # Encode and send the request
+    client.send(request.encode())
 
-    client.connect((host_IP, port)) # connect to host using the IP found via DNS and port vis the URL parse
+    response = client.recv(4096).decode() # recieve the request with max of 4096 bits(?) at once
+    responsetype = int(response.split(' ', 2)[1])
+    if responsetype == 200: # also need to check if contenttype is text/html
+        return ('exit 0')
+    elif:
+        responsetype >= 400:
+        print(response)
+        return ('exit 2')
 
-    request = "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n" %(path, host) # create the request
-    client.send(request.encode()) # encode and send the request
+    return response # parse this
 
-    response = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
-    print(response) # parse this
-
-
-
-    # Return from server
     # We will always use HTTP GET, which will (i think) return if it is a redirect. This is how we
     # can deal with them. We must check for HTTP response above 400, content-type (must be text/html
-    # if not a redirect). [Ignore Content-length? I think this will be clearer (for me) once we get to it]
+    # if not a redirect). Content-length check for another request - gotta figure this out later (comes into play for pages like libc.html)
 
     # Out
 
 if __name__ == "__main__":
-    main()
+    print(curl())
