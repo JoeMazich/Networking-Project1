@@ -18,7 +18,7 @@ def curl(url, attempts):
     # Connect to host using the IP found via DNS and port vis the URL parse
     client.connect((host_IP, int(port)))
 
-    request = "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n" %(path, host)
+    request = "GET %s HTTP/1.0\r\nHost: %s\r\nContent-Length: 0\r\n\r\n" %(path, host)
     client.send(request.encode())
 
     fullResponse = client.recv(4096).decode()
