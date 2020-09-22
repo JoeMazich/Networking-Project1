@@ -40,13 +40,17 @@ def curl():
     # Encode and send the request
     client.send(request.encode())
 
-    response = client.recv(4096).decode() # recieve the request with max of 4096 bits(?) at once
-    responsetype = int(response.split(' ', 2)[1])
+    fullResponse = ''
+    for i in [1, 1, 1, 1]: # change into while loop the breaks with
+        response = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
+        fullResponse += response.decode()
+
+    responsetype = int(fullResponse.split(' ', 2)[1])
     if responsetype == 200: # also need to check if contenttype is text/html
+        print(fullResponse)
         return ('exit 0')
-    elif:
-        responsetype >= 400:
-        print(response)
+    elif responsetype >= 400:
+        print(fullResponse)
         return ('exit 2')
 
     return response # parse this
