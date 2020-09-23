@@ -41,11 +41,13 @@ while True:
             file = open(header['Path'][1:], 'r')
             response = file.read()
             file.close()
-            print(header)
-            exit_code = 200
 
-            headerResponse = sendHeader(exit_code, len(response)+response, 'text/html')
-            clientSock.send(headerResponse.encode())
+            if header['Path'][1:][-4:] == ".htm" or header['Path'][1:][-5:] == ".html":
+                exit_code = 200
+            else:
+                exit_code = 403
+
+            clientSock.send(sendHeader(exit_code, len(response)+response, 'text/html').encode())
         except Exception:
             clientSock.send('404'.encode())
 
