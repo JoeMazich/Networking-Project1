@@ -7,7 +7,10 @@ def curl(url, attempts):
 
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    if url[0:7] != "http://":
+    if url[0:8] == "https://":
+        sys.stderr.write("https not supported")
+        sys.exit(1)
+    elif url[0:7] != "http://":
         sys.exit(1)
 
     host, port, path = parseURL(url)
@@ -30,6 +33,10 @@ def curl(url, attempts):
         if ':' in line:
             x, y = line.split(':', 1)
             header[x] = y.strip()
+    try:
+        decodetype = header['Content-Type'].split('=')[1]
+    except:
+        decodetype = 'utf-8'
 
     # Redirection
     if responseType == 302 or responseType == 301:
@@ -40,9 +47,16 @@ def curl(url, attempts):
         return curl(header['Location'], attempts + 1)
 
     # We know it is not a redirect, so lets go ahead and grab everything from the page
-    while len(fullResponse) < int(header['Content-Length']):
-        response = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
-        fullResponse += response.decode()
+    try:
+        while len(fullResponse) < int(header['Content-Length']):
+            response = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
+            fullResponse += response.decode(decodetype)
+    except Exception as e:
+        while True:
+            response = client.recv(4096)
+            fullResponse += response.decode(decodetype)
+            if len(response.decode(decodetype)) < 10:
+                break
 
     # Page error
     if responseType >= 400:
