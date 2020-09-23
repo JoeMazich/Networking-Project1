@@ -1,10 +1,11 @@
 import socket
 import sys
-import os
+
+port = int(sys.argv[1])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.bind(('localhost', 1900)) #use port 1900
+s.bind(('localhost', port))
 s.listen(5)
 
 def sendHeader(code, length, type):
@@ -17,7 +18,9 @@ def sendHeader(code, length, type):
         code = '403 Forbidden'
     elif code == 404:
         code = '404 Not Found'
-    return ('HTTP/1.1 %s \r\nContent-Length: %s\r\nContent-Tpye: \r\n\r\n' %(code, length, type))
+    header = 'HTTP/1.1 %s \r\nContent-Length: %s\r\nContent-Type: \r\n\r\n' %(code, str(length), type)
+    print(header)
+    return header
 
 while True:
     clientSock, clientAddr = s.accept()
@@ -35,20 +38,28 @@ while True:
             header[x] = y.strip()
 
     if header['HTTP-Command'] != 'GET':
-        clientSock.send(sendHeader(400, 0, 'text/html').encode())
+        response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+        clientSock.send(response.encode())
+    elif not (header['Path'][-4:] == '.htm' or header['Path'][-5:] == '.html'):
+        response = 'HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+        clientSock.send(response.encode())
     else:
         try:
             file = open(header['Path'][1:], 'r')
             response = file.read()
             file.close()
 
-            if header['Path'][1:][-4:] == ".htm" or header['Path'][1:][-5:] == ".html":
-                exit_code = 200
-            else:
-                exit_code = 403
+            responselength = len(response)
+            responsetype = 'text/html'
+            exit_code = '200 OK'
+        except Exception as e:
+            response = ''
+            responselength = 0
+            responsetype = 'text/html'
+            exit_code = '404 Not Found'
 
-            clientSock.send(sendHeader(exit_code, len(response)+response, 'text/html').encode())
-        except Exception:
-            clientSock.send('404'.encode())
+        fullResponse = 'HTTP/1.1 ' + exit_code + '\r\nContent-Length: ' + str(responselength) + '\r\nContent-Type: ' + responsetype +'\r\n\r\n' + response
+        clientSock.send(fullResponse.encode())
+
 
     clientSock.close()
