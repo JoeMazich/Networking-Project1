@@ -8,7 +8,7 @@ def curl(url, attempts):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     if url[0:7] != "http://":
-        return('exit 1')
+        sys.exit(1)
 
     host, port, path = parseURL(url)
 
@@ -34,7 +34,7 @@ def curl(url, attempts):
     # Redirection
     if responseType == 302 or responseType == 301:
         if attempts >= 10:
-            return('exit 2')
+            sys.exit(2)
         sys.stderr.write('Redirected to %s \n' %header['Location'])
         client.close()
         return curl(header['Location'], attempts + 1)
@@ -46,19 +46,19 @@ def curl(url, attempts):
 
     # Page error
     if responseType >= 400:
-        print(fullResponse)
-        return('exit 3')
+        sys.stdout.write(fullResponse)
+        sys.exit(3)
 
     # Got the page
     elif responseType == 200:
         # make sure Content header is correct
         if header['Content-Type'].split(';')[0] == 'text/html':
             sys.stdout.write(fullResponse)
-            return('exit 0')
+            sys.exit(0)
         else:
-            return('exit 4')
+            sys.exit(4)
 
-    return ('exit 5')
+    sys.exit(5)
 
 def parseURL(url):
     longpath = url.split('//')[1]
