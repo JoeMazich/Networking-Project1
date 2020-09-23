@@ -1,5 +1,6 @@
 import socket
 import sys
+import os
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -20,27 +21,30 @@ def sendHeader(code, length, type):
 
 while True:
     clientSock, clientAddr = s.accept()
-    fullResponse = clientSock.recv(4096).decode()
+    request = clientSock.recv(4096).decode()
 
-    # This is such a hacky way to do this, really want to change this (working as a Connection detector)
-    if len(fullResponse) > 0:
-        # Same header parsing as the curl clone
-        header = {}
-        firstLine = fullResponse.split('\n')[0].split(' ')
-        header['HTTP-Command'] = firstLine[0]
-        header['Path'] = firstLine[1]
-        header['HTTP-Type'] = firstLine[2]
-        for line in fullResponse.split('\n\r\n')[0].split('\n'):
-            if ':' in line:
-                x, y = line.split(':', 1)
-                header[x] = y.strip()
+    # Same header parsing as the curl clone
+    header = {}
+    firstLine = request.split('\n')[0].split(' ')
+    header['HTTP-Command'] = firstLine[0]
+    header['Path'] = firstLine[1]
+    header['HTTP-Type'] = firstLine[2]
+    for line in request.split('\n\r\n')[0].split('\n'):
+        if ':' in line:
+            x, y = line.split(':', 1)
+            header[x] = y.strip()
 
-        '''# Same loop to make sure we get all the data
-        while len(fullResponse) < int(header['Content-Length']):
-            response = client.recv(4096)
-            fullResponse += response.decode()'''
+    if header['HTTP-Command'] != 'GET':
+        clientSock.send(sendHeader(400, 0, 'text/html').encode())
+    else:
+        try:
+            file = open(header['Path'][1:], 'r')
+            response = file.read()
+            file.close()
 
-        if header['HTTP-Command'] != 'GET':
-            clientSock.send(sendHeader(400, 0, 'text/html').encode())
-        else:
-            print(header['Path'])
+            response = 'HTTP/1.1 200 OK \r\nContent-Length: %s\r\nContent-Type: text/html\r\n\r\n' %(len(response)) + response
+            clientSock.send(response.encode())
+        except Exception:
+            clientSock.send('404'.encode())
+
+    clientSock.close()
