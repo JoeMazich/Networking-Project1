@@ -4,7 +4,7 @@ import os
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.bind(('localhost', 1900))
+s.bind(('localhost', 1900)) #use port 1900
 s.listen(5)
 
 def sendHeader(code, length, type):
@@ -41,9 +41,11 @@ while True:
             file = open(header['Path'][1:], 'r')
             response = file.read()
             file.close()
+            print(header)
+            exit_code = 200
 
-            response = 'HTTP/1.1 200 OK \r\nContent-Length: %s\r\nContent-Type: text/html\r\n\r\n' %(len(response)) + response
-            clientSock.send(response.encode())
+            headerResponse = sendHeader(exit_code, len(response)+response, 'text/html')
+            clientSock.send(headerResponse.encode())
         except Exception:
             clientSock.send('404'.encode())
 
