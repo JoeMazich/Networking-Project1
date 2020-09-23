@@ -8,7 +8,7 @@ def curl(url, attempts):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     if url[0:8] == "https://":
-        sys.stderr.write("https not supported")
+        sys.stderr.write("https not supported\n")
         sys.exit(1)
     elif url[0:7] != "http://":
         sys.exit(1)
@@ -41,6 +41,7 @@ def curl(url, attempts):
     # Redirection
     if responseType == 302 or responseType == 301:
         if attempts >= 10:
+            sys.stderr.write('Too many redirects!!\n')
             sys.exit(2)
         sys.stderr.write('Redirected to %s \n' %header['Location'])
         client.close()

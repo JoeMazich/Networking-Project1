@@ -24,18 +24,32 @@ def sendHeader(code, length, type):
 
 while True:
     clientSock, clientAddr = s.accept()
-    request = clientSock.recv(4096).decode()
+    fullRequest = clientSock.recv(4096).decode()
 
     # Same header parsing as the curl clone
     header = {}
-    firstLine = request.split('\n')[0].split(' ')
+    firstLine = fullRequest.split('\n')[0].split(' ')
     header['HTTP-Command'] = firstLine[0]
     header['Path'] = firstLine[1]
     header['HTTP-Type'] = firstLine[2]
-    for line in request.split('\n\r\n')[0].split('\n'):
+    for line in fullRequest.split('\n\r\n')[0].split('\n'):
         if ':' in line:
             x, y = line.split(':', 1)
             header[x] = y.strip()
+
+    try:
+        try:
+            while len(fullRequest) < int(header['Content-Length']):
+                request = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
+                fullRequest += request.decode()
+        except Exception as e:
+            while True:
+                request = client.recv(4096)
+                fullRequest += request.decode()
+                if len(request.decode()) < 10:
+                    break
+    except Exception as e:
+        pass
 
     if header['HTTP-Command'] != 'GET':
         response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
