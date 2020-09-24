@@ -58,8 +58,6 @@ def curl(url, attempts):
             if len(response.decode('UTF-8', 'ignore')) < 10:
                 break
 
-
-
     # Page error
     if responseType >= 400:
         sys.stdout.write(fullResponse)
