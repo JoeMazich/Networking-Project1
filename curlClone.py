@@ -51,13 +51,15 @@ def curl(url, attempts):
     try:
         while len(fullResponse) < int(header['Content-Length']):
             response = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
-            fullResponse += response.decode(decodetype)
+            fullResponse += response.decode('utf-8')
     except Exception as e:
         while True:
             response = client.recv(4096)
-            fullResponse += response.decode(decodetype)
-            if len(response.decode(decodetype)) < 10:
+            fullResponse += response.decode('utf-8')
+            if len(response.decode('utf-8')) < 10:
                 break
+
+
 
     # Page error
     if responseType >= 400:
