@@ -28,15 +28,14 @@ def curl(url, attempts):
     responseType = int(fullResponse.split(' ', 2)[1]) # spits out the HTTP response type (200, 302, 301, 400, 404, etc)
 
     # Makes anything else in the header 'easier' to digest
+
     header = {}
     for line in fullResponse.split('\n\r\n')[0].split('\n'):
         if ':' in line:
             x, y = line.split(':', 1)
             header[x] = y.strip()
-    try:
-        decodetype = header['Content-Type'].split('=')[1]
-    except:
-        decodetype = 'utf-8'
+
+    fullResponse = fullResponse.split('\n\r\n')[1]
 
     # Redirection
     if responseType == 302 or responseType == 301:
@@ -51,12 +50,12 @@ def curl(url, attempts):
     try:
         while len(fullResponse) < int(header['Content-Length']):
             response = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
-            fullResponse += response.decode('utf-8')
+            fullResponse += response.decode('UTF-8', 'ignore')
     except Exception as e:
         while True:
             response = client.recv(4096)
-            fullResponse += response.decode('utf-8')
-            if len(response.decode('utf-8')) < 10:
+            fullResponse += response.decode('UTF-8', 'ignore')
+            if len(response.decode('UTF-8', 'ignore')) < 10:
                 break
 
 
