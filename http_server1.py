@@ -5,22 +5,10 @@ port = int(sys.argv[1])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.bind(('localhost', port))
+s.bind((socket.gethostname(), port))
+print(socket.gethostname()) # <-- This seems to be the biggest issue for me rn. I can run everything fine via local host
+#                                 but when I run it on murphy, something goes wrong with the host name (im guessing? it just wont connect)
 s.listen(5)
-
-def sendHeader(code, length, type):
-    # rewrite into switch
-    if code == 200:
-        code = '200 OK'
-    elif code == 400:
-        code = '400 Bad Request'
-    elif code == 403:
-        code = '403 Forbidden'
-    elif code == 404:
-        code = '404 Not Found'
-    header = 'HTTP/1.1 %s \r\nContent-Length: %s\r\nContent-Type: \r\n\r\n' %(code, str(length), type)
-    print(header)
-    return header
 
 while True:
     clientSock, clientAddr = s.accept()
@@ -37,8 +25,8 @@ while True:
             x, y = line.split(':', 1)
             header[x] = y.strip()
 
-    try:
-        try:
+    try: # This is a very dumb thing to do but it keeps returning errors where it cannot find the client socket when
+        try: # no request has benn made yet - be my guest to take this out and try it, let me know if it works for you
             while len(fullRequest) < int(header['Content-Length']):
                 request = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
                 fullRequest += request.decode()
@@ -51,6 +39,7 @@ while True:
     except Exception as e:
         pass
 
+    # Controlling all the request stuff here, pretty self explanatory
     if header['HTTP-Command'] != 'GET':
         response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
         clientSock.send(response.encode())
