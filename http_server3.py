@@ -6,8 +6,6 @@ port = int(sys.argv[1])
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 s.bind((socket.gethostname(), port))
-print(socket.gethostname()) # <-- This seems to be the biggest issue for me rn. I can run everything fine via local host
-#                                 but when I run it on murphy, something goes wrong with the host name (im guessing? it just wont connect)
 s.listen(5)
 
 while True:
