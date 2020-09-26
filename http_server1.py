@@ -62,5 +62,4 @@ while True:
         fullResponse = 'HTTP/1.1 ' + exit_code + '\r\nContent-Length: ' + str(responselength) + '\r\nContent-Type: ' + responsetype +'\r\n\r\n' + response
         clientSock.send(fullResponse.encode())
 
-
     clientSock.close()
