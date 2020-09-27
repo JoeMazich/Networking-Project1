@@ -12,7 +12,10 @@ s.listen(5)
 open_connections = []
 
 while True:
-    read_list = open_connections.copy()
+    if len(open_connections) > 0:
+        read_list = open_connections.copy()
+    else:
+        read_list = []
     read_list.append(s)
     write_list = []
     readable, writable, exceptional = select.select(read_list, write_list, read_list)
