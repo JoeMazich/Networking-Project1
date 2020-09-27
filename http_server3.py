@@ -1,11 +1,12 @@
 import socket
+import json
 import sys
 
 port = int(sys.argv[1])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.bind((socket.gethostname(), port))
+s.bind(('localhost', port))
 s.listen(5)
 
 while True:
@@ -24,7 +25,7 @@ while True:
             header[x] = y.strip()
 
     try: # This is a very dumb thing to do but it keeps returning errors where it cannot find the client socket when
-        try: # no request has benn made yet - be my guest to take this out and try it, let me know if it works for you
+        try: # no request has been made yet - be my guest to take this out and try it, let me know if it works for you
             while len(fullRequest) < int(header['Content-Length']):
                 request = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
                 fullRequest += request.decode()
@@ -41,26 +42,31 @@ while True:
     if header['HTTP-Command'] != 'GET':
         response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
         clientSock.send(response.encode())
-    elif not (header['Path'][-4:] == '.htm' or header['Path'][-5:] == '.html'):
-        response = 'HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+    elif header['Path'][:8] != '/product':
+        response = 'HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
         clientSock.send(response.encode())
-    else:
+
+    try:
+        productList = header['Path'][9:].split('&')
+    except:
+        response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+        clientSock.send(response.encode())
+
+    answer = 1
+    operands = []
+    for item in productList:
         try:
-            file = open(header['Path'][1:], 'r')
-            response = file.read()
-            file.close()
+            answer = answer * float(item.split('=')[1])
+            operands.append(float(item.split('=')[1]))
+        except:
+            response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+            clientSock.send(response.encode())
+            break
 
-            responselength = len(response)
-            responsetype = 'text/html'
-            exit_code = '200 OK'
-        except Exception as e:
-            response = ''
-            responselength = 0
-            responsetype = 'text/html'
-            exit_code = '404 Not Found'
+    responsebody = json.dumps({'operation': 'product', 'operands': operands, 'result': answer}, indent=4)
+    responseLength = len(responsebody)
 
-        fullResponse = 'HTTP/1.1 ' + exit_code + '\r\nContent-Length: ' + str(responselength) + '\r\nContent-Type: ' + responsetype +'\r\n\r\n' + response
-        clientSock.send(fullResponse.encode())
-
+    fullResponse = 'HTTP/1.1 200 OK\r\nContent-Length: ' + str(responseLength) + '\r\nContent-Type: application/json\r\n\r\n' + responsebody
+    clientSock.send(fullResponse.encode())
 
     clientSock.close()
