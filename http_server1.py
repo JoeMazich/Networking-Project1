@@ -5,7 +5,7 @@ port = int(sys.argv[1])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.bind((socket.gethostname(), port))
+s.bind(('localhost/', port))
 s.listen(5)
 
 while True:
@@ -23,19 +23,17 @@ while True:
             x, y = line.split(':', 1)
             header[x] = y.strip()
 
-    try: # This is a very dumb thing to do but it keeps returning errors where it cannot find the client socket when
-        try: # no request has benn made yet - be my guest to take this out and try it, let me know if it works for you
+    if len(fullRequest) == 4096:
+        try:
             while len(fullRequest) < int(header['Content-Length']):
-                request = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
+                request = clientSock.recv(4096) # recieve the request with max of 4096 bits(?) at once
                 fullRequest += request.decode()
         except Exception as e:
             while True:
-                request = client.recv(4096)
+                request = clientSock.recv(4096)
                 fullRequest += request.decode()
-                if len(request.decode()) < 10:
+                if len(request.decode()) < 4096:
                     break
-    except Exception as e:
-        pass
 
     # Controlling all the request stuff here, pretty self explanatory
     if header['HTTP-Command'] != 'GET':
