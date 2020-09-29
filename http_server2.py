@@ -1,69 +1,63 @@
 import select
 import socket
 import sys
-import queue
+
+#!!!!!!!!!!!!!! BASE CODE RECIEVED FROM https://pymotw.com/3/select/ !!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 port = int(sys.argv[1])
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #the accept socket
-s.setblocking(0)
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind((socket.gethostname(), port))
+server.listen(5)
 
-s.bind((socket.gethostname(), port))
-s.listen(5)
+inputs = [server]
+outputs = []
 
-read_list = [s]
-write_list = []
 message_queues = {}
 
-while True:
-    readable, writable, exceptional = select.select(read_list, write_list, read_list)
-    #Note: This code, as well as several other parts of this script, were taken from https://pymotw.com/3/select/
+while inputs:
 
-    for readable_socket in readable:
-        if readable_socket is s:
-            clientSock, clientAddr = s.accept()
-            clientSock.setblocking(0)
-            read_list.append(clientSock)
-            message_queues[clientSock] = queue.Queue()
+    readable, writable, exceptional = select.select(inputs,outputs,inputs)
+
+    # Handle inputs
+    for s in readable:
+        if s is server:
+            connection, client_address = s.accept()
+            inputs.append(connection)
+            message_queues[connection] = []
+
         else:
-            data = readable_socket.recv(4096)
-            if data: #got data
-                message_queues[readable_socket].put(data)
-                if readable_socket not in write_list:
-                    write_list.append(readable_socket)
+            fullRequest = s.recv(4096).decode()
 
-                header = {}
-                fullRequest = data.decode()
-                firstLine = fullRequest.split('\n')[0].split(' ')
-                header['HTTP-Command'] = firstLine[0]
-                header['Path'] = firstLine[1]
-                header['HTTP-Type'] = firstLine[2]
-                for line in fullRequest.split('\n\r\n')[0].split('\n'):
-                    if ':' in line:
-                        x, y = line.split(':', 1)
-                        header[x] = y.strip()
+            # Same header parsing as the curl clone
+            header = {}
+            firstLine = fullRequest.split('\n')[0].split(' ')
+            header['HTTP-Command'] = firstLine[0]
+            header['Path'] = firstLine[1]
+            header['HTTP-Type'] = firstLine[2]
+            for line in fullRequest.split('\n\r\n')[0].split('\n'):
+                if ':' in line:
+                    x, y = line.split(':', 1)
+                    header[x] = y.strip()
 
-                try: # This is a very dumb thing to do but it keeps returning errors where it cannot find the client socket when
-                    try: # no request has benn made yet - be my guest to take this out and try it, let me know if it works for you
-                        while len(fullRequest) < int(header['Content-Length']):
-                            request = client.recv(4096) # recieve the request with max of 4096 bits(?) at once
-                            fullRequest += request.decode()
-                    except Exception as e:
-                        while True:
-                            request = client.recv(4096)
-                            fullRequest += request.decode()
-                            if len(request.decode()) < 10:
-                                break
+            if len(fullRequest) == 4096:
+                try:
+                    while len(fullRequest) < int(header['Content-Length']):
+                        request = connection.recv(4096) # recieve the request with max of 4096 bits(?) at once
+                        fullRequest += request.decode()
                 except Exception as e:
-                    pass
+                    while True:
+                        request = connection.recv(4096)
+                        fullRequest += request.decode()
+                        if len(request.decode()) < 4096:
+                            break
 
-                # Controlling all the request stuff here, pretty self explanatory
+            if fullRequest:
                 if header['HTTP-Command'] != 'GET':
-                    response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
-                    readable_socket.send(response.encode())
+                    fullResponse = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
                 elif not (header['Path'][-4:] == '.htm' or header['Path'][-5:] == '.html'):
-                    response = 'HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
-                    readable_socket.send(response.encode())
+                    fullResponse = 'HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
                 else:
                     try:
                         file = open(header['Path'][1:], 'r')
@@ -80,28 +74,36 @@ while True:
                         exit_code = '404 Not Found'
 
                     fullResponse = 'HTTP/1.1 ' + exit_code + '\r\nContent-Length: ' + str(responselength) + '\r\nContent-Type: ' + responsetype +'\r\n\r\n' + response
-                    readable_socket.send(fullResponse.encode())
-            else: #didn't get data
-                if readable_socket in write_list:
-                    write_list.remove(readable_socket)
-                read_list.remove(readable_socket)
-                readable_socket.close()
-                del message_queues[readable_socket]
-
-    for writable_socket in writable:
+                message_queues[s].append(fullResponse)
+                # Add output channel for response
+                if s not in outputs:
+                    outputs.append(s)
+            else:
+                # Interpret empty result as closed connection
+                if s in outputs:
+                    outputs.remove(s)
+                inputs.remove(s)
+                s.close()
+                del message_queues[s]
+    # Handle outputs
+    for s in writable:
         try:
-            next_message = message_queues[writable_socket].get_nowait()
-        except queue.Empty:
-            write_list.remove(writable_socket)
-        else:
-            writable_socket.send(next_message)
+            next_msg = message_queues[s][0]
+            if len(message_queues[s]) == 1:
+                message_queues[s] = []
+            else:
+                message_queues[s] = message_queues[s][1:]
+            s.send(next_msg.encode())
+        except IndexError:
+            # No messages waiting so stop checking
+            # for writability.
+            outputs.remove(s)
 
-    for exceptional_socket in exceptional:
-        if exceptional_socket in write_list:
-            write_list.remove(exceptional_socket)
-        read_list.remove(exceptional_socket)
-        exceptional_socket.close()
-        del message_queues[exceptional_socket]
-
-
-
+    # Handle "exceptional conditions"
+    for s in exceptional:
+        # Stop listening for input on the connection
+        inputs.remove(s)
+        if s in outputs:
+            outputs.remove(s)
+        s.close()
+        del message_queues[s]
