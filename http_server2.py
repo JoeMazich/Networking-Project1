@@ -2,8 +2,7 @@ import select
 import socket
 import sys
 
-#!!!!!!!!!!!!!! BASE CODE RECIEVED FROM https://pymotw.com/3/select/ !!!!!!!!!!!!!!!!!!!!!!!!!
-
+#!!!!!!!!!!!!!! BASE CODE STRUCTURE RECIEVED FROM https://pymotw.com/3/select/ !!!!!!!!!!!!!!!!!!!!!!!!!
 
 port = int(sys.argv[1])
 
@@ -17,9 +16,8 @@ outputs = []
 message_queues = {}
 
 while inputs:
-
+    # Recieved from https://pymotw.com/3/select/
     readable, writable, exceptional = select.select(inputs,outputs,inputs)
-
     # Handle inputs
     for s in readable:
         if s is server:
@@ -80,6 +78,7 @@ while inputs:
                     outputs.append(s)
             else:
                 # Interpret empty result as closed connection
+                # Recieved from https://pymotw.com/3/select/
                 if s in outputs:
                     outputs.remove(s)
                 inputs.remove(s)
@@ -101,6 +100,7 @@ while inputs:
 
     # Handle "exceptional conditions"
     for s in exceptional:
+        # Recieved from https://pymotw.com/3/select/
         # Stop listening for input on the connection
         inputs.remove(s)
         if s in outputs:
