@@ -11,6 +11,9 @@ s.listen(5)
 while True:
     clientSock, clientAddr = s.accept()
     fullRequest = clientSock.recv(4096).decode()
+    while ('\r\n\r\n') not in fullRequest:
+        request = connection.recv(4096)
+        fullRequest += request.decode()
 
     # Same header parsing as the curl clone
     header = {}
