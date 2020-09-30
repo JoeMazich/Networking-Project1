@@ -5,7 +5,7 @@ port = int(sys.argv[1])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.bind(('localhost/', port))
+s.bind((socket.gethostname(), port))
 s.listen(5)
 
 while True:
