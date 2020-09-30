@@ -31,13 +31,16 @@ while inputs:
             # Same header parsing as the curl clone
             header = {}
             firstLine = fullRequest.split('\n')[0].split(' ')
-            header['HTTP-Command'] = firstLine[0]
-            header['Path'] = firstLine[1]
-            header['HTTP-Type'] = firstLine[2]
-            for line in fullRequest.split('\n\r\n')[0].split('\n'):
-                if ':' in line:
-                    x, y = line.split(':', 1)
-                    header[x] = y.strip()
+            try:
+                header['HTTP-Command'] = firstLine[0]
+                header['Path'] = firstLine[1]
+                header['HTTP-Type'] = firstLine[2]
+                for line in fullRequest.split('\n\r\n')[0].split('\n'):
+                    if ':' in line:
+                        x, y = line.split(':', 1)
+                        header[x] = y.strip()
+            except:
+                pass
 
             if len(fullRequest) == 4096:
                 try:
