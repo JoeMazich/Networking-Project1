@@ -27,9 +27,6 @@ while inputs:
 
         else:
             fullRequest = s.recv(4096).decode()
-            while ('\r\n\r\n') not in fullRequest:
-                request = connection.recv(4096)
-                fullRequest += request.decode()
 
             # Same header parsing as the curl clone
             header = {}
@@ -45,16 +42,17 @@ while inputs:
             except:
                 pass
 
-            try:
-                while len(fullRequest) < int(header['Content-Length']):
-                    request = connection.recv(4096) # recieve the request with max of 4096 bits(?) at once
-                    fullRequest += request.decode()
-            except Exception as e:
-                while True:
-                    request = connection.recv(4096)
-                    fullRequest += request.decode()
-                    if len(request.decode()) < 10:
-                        break
+            if len(fullRequest) == 4096:
+                try:
+                    while len(fullRequest) < int(header['Content-Length']):
+                        request = connection.recv(4096) # recieve the request with max of 4096 bits(?) at once
+                        fullRequest += request.decode()
+                except Exception as e:
+                    while True:
+                        request = connection.recv(4096)
+                        fullRequest += request.decode()
+                        if len(request.decode()) < 10:
+                            break
 
             if fullRequest:
                 if header['HTTP-Command'] != 'GET':
