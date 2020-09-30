@@ -42,17 +42,16 @@ while inputs:
             except:
                 pass
 
-            if len(fullRequest) == 4096:
-                try:
-                    while len(fullRequest) < int(header['Content-Length']):
-                        request = connection.recv(4096) # recieve the request with max of 4096 bits(?) at once
-                        fullRequest += request.decode()
-                except Exception as e:
-                    while True:
-                        request = connection.recv(4096)
-                        fullRequest += request.decode()
-                        if len(request.decode()) < 4096:
-                            break
+            try:
+                while len(fullRequest) < int(header['Content-Length']):
+                    request = connection.recv(4096) # recieve the request with max of 4096 bits(?) at once
+                    fullRequest += request.decode()
+            except Exception as e:
+                while True:
+                    request = connection.recv(4096)
+                    fullRequest += request.decode()
+                    if len(request.decode()) < 10:
+                        break
 
             if fullRequest:
                 if header['HTTP-Command'] != 'GET':
