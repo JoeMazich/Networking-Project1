@@ -6,7 +6,7 @@ port = int(sys.argv[1])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.bind((socket.gethostname(), port))
+s.bind(('localhost', port))
 s.listen(5)
 
 while True:
@@ -24,30 +24,30 @@ while True:
             x, y = line.split(':', 1)
             header[x] = y.strip()
 
-
-    try:
-        while len(fullRequest) < int(header['Content-Length']):
-            request = clientSock.recv(4096) # recieve the request with max of 4096 bits(?) at once
-            fullRequest += request.decode()
-    except Exception as e:
-        while True:
-            request = clientSock.recv(4096)
-            fullRequest += request.decode()
-            if len(request.decode()) < 10:
-                break
+    if len(fullRequest) == 4096:
+        try:
+            while len(fullRequest) < int(header['Content-Length']):
+                request = clientSock.recv(4096) # recieve the request with max of 4096 bits(?) at once
+                fullRequest += request.decode()
+        except Exception as e:
+            while True:
+                request = clientSock.recv(4096)
+                fullRequest += request.decode()
+                if len(request.decode()) < 10:
+                    break
 
     # Controlling all the request stuff here, pretty self explanatory
     if header['HTTP-Command'] != 'GET':
-        response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+        response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: application/json\r\n\r\n'
         clientSock.send(response.encode())
     elif header['Path'][:8] != '/product':
-        response = 'HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+        response = 'HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nContent-Type: application/json\r\n\r\n'
         clientSock.send(response.encode())
 
     try:
         productList = header['Path'][9:].split('&')
     except:
-        response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+        response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: application/json\r\n\r\n'
         clientSock.send(response.encode())
 
     answer = 1
@@ -57,7 +57,7 @@ while True:
             answer = answer * float(item.split('=')[1])
             operands.append(float(item.split('=')[1]))
         except:
-            response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: text/html\r\n\r\n'
+            response = 'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nContent-Type: application/json\r\n\r\n'
             clientSock.send(response.encode())
             break
 
