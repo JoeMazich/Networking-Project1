@@ -24,17 +24,17 @@ while True:
             x, y = line.split(':', 1)
             header[x] = y.strip()
 
-
-    try:
-        while len(fullRequest) < int(header['Content-Length']):
-            request = clientSock.recv(4096) # recieve the request with max of 4096 bits(?) at once
-            fullRequest += request.decode()
-    except Exception as e:
-        while True:
-            request = clientSock.recv(4096)
-            fullRequest += request.decode()
-            if len(request.decode()) < 10:
-                break
+    if len(fullRequest) == 4096:
+        try:
+            while len(fullRequest) < int(header['Content-Length']):
+                request = clientSock.recv(4096) # recieve the request with max of 4096 bits(?) at once
+                fullRequest += request.decode()
+        except Exception as e:
+            while True:
+                request = clientSock.recv(4096)
+                fullRequest += request.decode()
+                if len(request.decode()) < 10:
+                    break
 
     # Controlling all the request stuff here, pretty self explanatory
     if header['HTTP-Command'] != 'GET':
